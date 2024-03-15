@@ -67,7 +67,9 @@ def main(cfg, args):
         model = model.eval()
         model = model.cuda()
         for dataset_name, dataset in datasets.items():
-            if len(args.chain) < 1:  # if unspecified, take first chain
+            if args.chain == 'All':
+                chain = None #This will cause the parser to keep all the chains.
+            elif len(args.chain) < 1:  # if unspecified, take first chain
                 chain = get_chains(input_pdb)[0]
             else:
                 chain = args.chain
@@ -112,7 +114,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--pdb', type=str, default='', help='Input PDB to use for custom inference')
-    parser.add_argument('--chain', type=str, default='A', help='Chain in input PDB to use.')
+    parser.add_argument('--chain', type=str, default='A', help='Chain in input PDB to use. Set to "All" to include the whole complex')
     parser.add_argument('--model_path', type=str, default='/home/ThermoMPNN/models/thermoMPNN_default.pt', help='filepath to model to use for inference')
 
     args = parser.parse_args()
