@@ -37,6 +37,7 @@ steps:
     image: plugins/gcr
     settings:
       repo: cyrus-containers/thermompnn
+      tags:
         - ${DRONE_TAG}
       debug: true
       dockerfile: Dockerfile
