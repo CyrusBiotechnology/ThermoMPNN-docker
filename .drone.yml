@@ -16,7 +16,7 @@ steps:
     when:
       branch:
         exclude:
-          - master
+          - main
       event:
         - push
 
