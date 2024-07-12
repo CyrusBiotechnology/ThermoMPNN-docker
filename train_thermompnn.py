@@ -1,5 +1,5 @@
 import sys
-import wandb
+#import wandb
 
 import torch
 import torch.nn as nn
@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import WandbLogger
+#from pytorch_lightning.loggers import WandbLogger
 from torchmetrics import MeanSquaredError, R2Score, SpearmanCorrCoef, PearsonCorrCoef
 from omegaconf import OmegaConf
 
@@ -125,7 +125,8 @@ def train(cfg):
     print('Configuration:\n', cfg)
 
     if 'project' in cfg:
-        wandb.init(project=cfg.project, name=cfg.name)
+        #wandb.init(project=cfg.project, name=cfg.name)
+        cfg.name = 'test'
     else:
         cfg.name = 'test'
 
