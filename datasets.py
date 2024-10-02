@@ -240,6 +240,8 @@ class FireProtDataset(torch.utils.data.Dataset):
                     print(second_item)
                     print("third thing")
                     print(third_item)
+                    print("pdb_idx")
+                    print(pdb_idx)
                 
                 assert pdb[0]['seq'][pdb_idx] == row.wild_type == row.pdb_sequence[row.pdb_position]
                 
