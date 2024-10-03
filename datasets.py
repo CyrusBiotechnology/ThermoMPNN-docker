@@ -235,6 +235,7 @@ class FireProtDataset(torch.utils.data.Dataset):
                 third_item = row.pdb_sequence[row.pdb_position]
                 if not (first_item == second_item == third_item):
                     print(data.pdb_id_corrected[0])
+                    print(pdb_file)
                     print("first thing range")
                     first_item_range = pdb[0]['seq'][pdb_idx:pdb_idx+5]
                     print(first_item_range)
