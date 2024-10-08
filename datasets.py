@@ -210,6 +210,7 @@ class FireProtDataset(torch.utils.data.Dataset):
 
         for wt_name in self.wt_names:
             self.mut_rows[wt_name] = df.query('pdb_id_corrected == @wt_name').reset_index(drop=True)
+            print(self.mut_rows[wt_name])
             self.wt_seqs[wt_name] = self.mut_rows[wt_name].pdb_sequence[0]
 
 
