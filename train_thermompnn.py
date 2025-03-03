@@ -166,7 +166,7 @@ def train(cfg):
     filename = cfg.name + '_{epoch:02d}_{val_ddG_spearman:.02}'
     monitor = 'val_ddG_spearman'
     checkpoint_callback = ModelCheckpoint(monitor=monitor, mode='max', dirpath='checkpoints', filename=filename)
-    logger = WandbLogger(project=cfg.project, name="test", log_model="all") if 'project' in cfg else None
+    logger = None #WandbLogger(project=cfg.project, name="test", log_model="all") if 'project' in cfg else None
     max_ep = cfg.training.epochs if 'epochs' in cfg.training else 100
 
     trainer = pl.Trainer(callbacks=[checkpoint_callback], logger=logger, log_every_n_steps=10, max_epochs=max_ep,
