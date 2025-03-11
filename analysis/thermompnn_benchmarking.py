@@ -217,23 +217,23 @@ def main(cfg, args):
 
     }
 
-    misc_data_loc = '/nas/longleaf/home/dieckhau/protein-stability/enzyme-stability/data'
+    misc_data_loc = '/home/smlewis'
     datasets = {
         # "Megascale-test": MegaScaleDataset(cfg, "test"),
         # "Fireprot-test": FireProtDataset(cfg, "test"),
 
         # "Fireprot-homologue-free": FireProtDataset(cfg, "homologue-free"),
-        "P53": ddgBenchDataset(cfg, pdb_dir=os.path.join(misc_data_loc, 'protddg-bench-master/P53/pdbs'),
-                               csv_fname=os.path.join(misc_data_loc, 'protddg-bench-master/P53/p53_clean.csv')),
-        "MYOGLOBIN": ddgBenchDataset(cfg, pdb_dir=os.path.join(misc_data_loc, 'protddg-bench-master/MYOGLOBIN/pdbs'),
-                               csv_fname=os.path.join(misc_data_loc, 'protddg-bench-master/MYOGLOBIN/myoglobin_clean.csv')),
+        "P53": ddgBenchDataset(cfg, pdb_dir=os.path.join(misc_data_loc, 'protddg-bench/P53/pdbs'),
+                               csv_fname=os.path.join(misc_data_loc, 'protddg-bench/P53/p53_clean.csv')),
+        "MYOGLOBIN": ddgBenchDataset(cfg, pdb_dir=os.path.join(misc_data_loc, 'protddg-bench/MYOGLOBIN/pdbs'),
+                               csv_fname=os.path.join(misc_data_loc, 'protddg-bench/MYOGLOBIN/myoglobin_clean.csv')),
 
-        "SSYM_dir": ddgBenchDataset(cfg, pdb_dir=os.path.join(misc_data_loc, 'protddg-bench-master/SSYM/pdbs'),
-                               csv_fname=os.path.join(misc_data_loc, 'protddg-bench-master/SSYM/ssym-5fold_clean_dir.csv')),
-        "SSYM_inv": ddgBenchDataset(cfg, pdb_dir=os.path.join(misc_data_loc, 'protddg-bench-master/SSYM/pdbs'),
-                               csv_fname=os.path.join(misc_data_loc, 'protddg-bench-master/SSYM/ssym-5fold_clean_inv.csv')),
-        "S669": ddgBenchDataset(cfg, pdb_dir=os.path.join(misc_data_loc, 'S669/pdbs'),
-                               csv_fname=os.path.join(misc_data_loc, 'S669/s669_clean_dir.csv')),
+        "SSYM_dir": ddgBenchDataset(cfg, pdb_dir=os.path.join(misc_data_loc, 'protddg-bench/SSYM/pdbs'),
+                               csv_fname=os.path.join(misc_data_loc, 'protddg-bench/SSYM/ssym-5fold_clean_dir.csv')),
+        "SSYM_inv": ddgBenchDataset(cfg, pdb_dir=os.path.join(misc_data_loc, 'protddg-bench/SSYM/pdbs'),
+                               csv_fname=os.path.join(misc_data_loc, 'protddg-bench/SSYM/ssym-5fold_clean_inv.csv')),
+        #"S669": ddgBenchDataset(cfg, pdb_dir=os.path.join(misc_data_loc, 'S669/pdbs'),
+        #                       csv_fname=os.path.join(misc_data_loc, 'S669/s669_clean_dir.csv')),
     }
 
     results = []
