@@ -2,6 +2,7 @@ import sys
 #import wandb
 
 import torch
+torch.multiprocessing.set_sharing_strategy('file_system')
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
