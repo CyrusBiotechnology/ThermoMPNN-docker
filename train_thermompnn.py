@@ -56,11 +56,22 @@ class TransferModelPL(pl.LightningModule):
         ddg_mses = []
         for mut, out in zip(mutations, pred):
             if mut.ddG is not None:
-                ddg_mses.append(F.mse_loss(out["ddG"], mut.ddG))
+                weight = 1
+                if hasattr(mut, "weight"):
+                    weight = mut.weight
+                    print ("modified weight of " + str(weight))
+
+                mse = F.mse_loss(out["ddG"], mut.ddG)
+                weighted_mse = weight * mse
+                ddg_mses.append(weighted_mse)
+
                 for metric in self.metrics[f"{prefix}_metrics"]["ddG"].values():
                     metric.update(out["ddG"], mut.ddG)
 
         loss = 0.0 if len(ddg_mses) == 0 else torch.stack(ddg_mses).mean()
+        # Alternatively, if you want to normalize by the total weight:
+        # loss = 0.0 if total_weight == 0 else torch.stack(weighted_ddg_mses).sum() / total_weight
+
         on_step = False
         on_epoch = not on_step
 

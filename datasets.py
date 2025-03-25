@@ -29,7 +29,8 @@ class Mutation:
     mutation: str
     ddG: Optional[float] = None
     pdb: Optional[str] = ''
-
+    weight: Optional[float] = None
+    #what do we think about making the default 1 for weights?
 
 def seq1_index_to_seq2_index(align, index):
     """Do quick conversion of index after alignment"""
@@ -67,7 +68,7 @@ class MegaScaleDataset(torch.utils.data.Dataset):
 
         fname = self.cfg.data_loc.megascale_csv
         # only load rows needed to save memory
-        df = pd.read_csv(fname, usecols=["ddG_ML", "mut_type", "WT_name", "aa_seq", "dG_ML"])
+        df = pd.read_csv(fname, usecols=["ddG_ML", "mut_type", "WT_name", "aa_seq", "dG_ML", "weight"])
         # remove unreliable data and more complicated mutations
         df = df.loc[df.ddG_ML != '-', :].reset_index(drop=True)
         df = df.loc[~df.mut_type.str.contains("ins") & ~df.mut_type.str.contains("del") & ~df.mut_type.str.contains(":"), :].reset_index(drop=True)
@@ -159,7 +160,8 @@ class MegaScaleDataset(torch.utils.data.Dataset):
                 continue # filter out any unreliable data
 
             ddG = -torch.tensor([float(row.ddG_ML)], dtype=torch.float32)
-            mutations.append(Mutation(idx, wt, mut, ddG, wt_name))
+            weight = row['weight'] if 'weight' in row else None # Get the weight, handle case where it might be missing
+            mutations.append(Mutation(idx, wt, mut, ddG, wt_name, weight=weight))
 
         return pdb, mutations
 
@@ -239,7 +241,8 @@ class FireProtDataset(torch.utils.data.Dataset):
                 assert pdb[0]['seq'][pdb_idx] == row.wild_type == row.pdb_sequence[row.pdb_position]
 
             ddG = None if row.ddG is None or isnan(row.ddG) else torch.tensor([row.ddG], dtype=torch.float32)
-            mut = Mutation(pdb_idx, pdb[0]['seq'][pdb_idx], row.mutation, ddG, wt_name)
+            weight = row['weight'] if 'weight' in row else None # Get the weight, handle case where it might be missing
+            mut = Mutation(pdb_idx, pdb[0]['seq'][pdb_idx], row.mutation, ddG, wt_name, weight=weight)
             mutations.append(mut)
 
         return pdb, mutations
