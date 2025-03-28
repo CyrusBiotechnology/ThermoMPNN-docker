@@ -29,8 +29,8 @@ class Mutation:
     mutation: str
     ddG: Optional[float] = None
     pdb: Optional[str] = ''
-    weight: Optional[float] = None
-    #what do we think about making the default 1 for weights?
+    weight: Optional[float] = None  # Weight is now mandatory for HIDES
+
 
 def seq1_index_to_seq2_index(align, index):
     """Do quick conversion of index after alignment"""
@@ -42,7 +42,7 @@ def seq1_index_to_seq2_index(align, index):
             cur_seq1_index += 1
         if cur_seq1_index > index:
             break
-    
+
     # now the index in seq 2 cooresponding to aligned index
     if align.seqB[aln_idx] == '-':
         return None
@@ -52,7 +52,7 @@ def seq1_index_to_seq2_index(align, index):
     for char in seq2_to_idx:
         if char == '-':
             seq2_idx -= 1
-    
+
     if seq2_idx < 0:
         return None
 
@@ -68,7 +68,7 @@ class MegaScaleDataset(torch.utils.data.Dataset):
 
         fname = self.cfg.data_loc.megascale_csv
         # only load rows needed to save memory
-        df = pd.read_csv(fname, usecols=["ddG_ML", "mut_type", "WT_name", "aa_seq", "dG_ML", "weight"])
+        df = pd.read_csv(fname, usecols=["ddG_ML", "mut_type", "WT_name", "aa_seq", "dG_ML"])
         # remove unreliable data and more complicated mutations
         df = df.loc[df.ddG_ML != '-', :].reset_index(drop=True)
         df = df.loc[~df.mut_type.str.contains("ins") & ~df.mut_type.str.contains("del") & ~df.mut_type.str.contains(":"), :].reset_index(drop=True)
@@ -78,13 +78,13 @@ class MegaScaleDataset(torch.utils.data.Dataset):
         # load splits produced by mmseqs clustering
         with open(self.cfg.data_loc.megascale_splits, 'rb') as f:
             splits = pickle.load(f)  # this is a dict with keys train/val/test and items holding FULL PDB names for a given split
-            
+
         self.split_wt_names = {
             "val": [],
             "test": [],
             "train": [],
             "train_s669": [],
-            "all": [], 
+            "all": [],
             "cv_train_0": [],
             "cv_train_1": [],
             "cv_train_2": [],
@@ -160,8 +160,7 @@ class MegaScaleDataset(torch.utils.data.Dataset):
                 continue # filter out any unreliable data
 
             ddG = -torch.tensor([float(row.ddG_ML)], dtype=torch.float32)
-            weight = row['weight'] if 'weight' in row else None # Get the weight, handle case where it might be missing
-            mutations.append(Mutation(idx, wt, mut, ddG, wt_name, weight=weight))
+            mutations.append(Mutation(idx, wt, mut, ddG, wt_name))
 
         return pdb, mutations
 
@@ -189,7 +188,7 @@ class FireProtDataset(torch.utils.data.Dataset):
         # load splits produced by mmseqs clustering
         with open(self.cfg.data_loc.fireprot_splits, 'rb') as f:
             splits = pickle.load(f)  # this is a dict with keys train/val/test and items holding FULL PDB names for a given split
-            
+
         self.split_wt_names = {
             "val": [],
             "test": [],
@@ -232,7 +231,7 @@ class FireProtDataset(torch.utils.data.Dataset):
             try:
                 pdb_idx = row.pdb_position
                 assert pdb[0]['seq'][pdb_idx] == row.wild_type == row.pdb_sequence[row.pdb_position]
-                
+
             except AssertionError:  # contingency for mis-alignments
                 align, *rest = pairwise2.align.globalxx(seq, pdb[0]['seq'].replace("-", "X"))
                 pdb_idx = seq1_index_to_seq2_index(align, row.pdb_position)
@@ -241,8 +240,99 @@ class FireProtDataset(torch.utils.data.Dataset):
                 assert pdb[0]['seq'][pdb_idx] == row.wild_type == row.pdb_sequence[row.pdb_position]
 
             ddG = None if row.ddG is None or isnan(row.ddG) else torch.tensor([row.ddG], dtype=torch.float32)
-            weight = row['weight'] if 'weight' in row else None # Get the weight, handle case where it might be missing
+            weight = row['weight'] if 'weight' in row else None # Still optional for FireProt
             mut = Mutation(pdb_idx, pdb[0]['seq'][pdb_idx], row.mutation, ddG, wt_name, weight=weight)
+            mutations.append(mut)
+
+        return pdb, mutations
+
+
+class HIDESDataset(torch.utils.data.Dataset):
+
+    def __init__(self, cfg, split):
+
+        self.cfg = cfg
+        self.split = split
+
+        filename = self.cfg.data_loc.hides_csv  # Changed filename source
+        self.ddg_source = self.cfg.data_loc.hides_ddg_source # Get the ddG source from config
+
+        df = pd.read_csv(filename).dropna(subset=['ddS', 'log2ratio', 'weight']) # Require ddS, log2ratio, and weight
+        df = df.where(pd.notnull(df), None)
+
+        self.seq_to_data = {}
+        seq_key = "pdb_sequence" # Assuming your HIDES data has this column
+
+        for wt_seq in df[seq_key].unique():
+            self.seq_to_data[wt_seq] = df.query(f"{seq_key} == @wt_seq").reset_index(drop=True)
+
+        self.df = df
+
+        # load splits - you might need a new split file for HIDES data
+        hides_splits_path = self.cfg.data_loc.hides_splits if hasattr(self.cfg.data_loc, 'hides_splits') else None
+        splits = {}
+        if hides_splits_path:
+            with open(hides_splits_path, 'rb') as f:
+                splits = pickle.load(f)
+
+        self.split_wt_names = {
+            "val": [],
+            "test": [],
+            "train": [],
+            "all": []
+        }
+
+        self.wt_seqs = {}
+        self.mut_rows = {}
+
+        if self.split == 'all':
+            all_names = list(splits.values()) if splits else df['pdb_id_corrected'].unique() # Adjust based on your split file structure or use all unique IDs
+            all_names = [j for sub in all_names for j in sub] if splits else list(df['pdb_id_corrected'].unique())
+            self.split_wt_names[self.split] = all_names
+        else:
+            self.split_wt_names[self.split] = splits.get(self.split, list(df['pdb_id_corrected'].unique())) # Use get with a default
+
+        self.wt_names = self.split_wt_names[self.split]
+
+        for wt_name in self.wt_names:
+            self.mut_rows[wt_name] = df.query('pdb_id_corrected == @wt_name').reset_index(drop=True) # Assuming 'pdb_id_corrected' column
+            self.wt_seqs[wt_name] = self.mut_rows[wt_name].pdb_sequence[0] # Assuming 'pdb_sequence' column
+
+
+    def __len__(self):
+        return len(self.wt_names)
+
+    def __getitem__(self, index):
+
+        wt_name = self.wt_names[index]
+        seq = self.wt_seqs[wt_name]
+        data = self.seq_to_data[seq]
+
+        pdb_file = os.path.join(self.cfg.data_loc.hides_pdbs, f"{data.pdb_id_corrected[0]}.pdb") # Assuming you have a HIDES pdb directory
+        pdb = parse_pdb_cached(self.cfg, pdb_file)
+
+        mutations = []
+        for i, row in data.iterrows():
+            try:
+                pdb_idx = row.pdb_position # Assuming 'pdb_position' column
+                assert pdb[0]['seq'][pdb_idx] == row.wild_type == row.pdb_sequence[row.pdb_position] # Assuming these columns
+            except AssertionError:  # contingency for mis-alignments
+                align, *rest = pairwise2.align.globalxx(seq, pdb[0]['seq'].replace("-", "X"))
+                pdb_idx = seq1_index_to_seq2_index(align, row.pdb_position)
+                if pdb_idx is None:
+                    continue
+                assert pdb[0]['seq'][pdb_idx] == row.wild_type == row.pdb_sequence[row.pdb_position]
+
+            if self.ddg_source == 'ddS':
+                ddG_value = row['ddS']
+            elif self.ddg_source == 'log2ratio':
+                ddG_value = row['log2ratio']
+            else:
+                raise ValueError(f"Invalid ddG source '{self.ddg_source}' in config. Must be 'ddS' or 'log2ratio'.")
+
+            ddG = None if ddG_value is None or isnan(ddG_value) else torch.tensor([ddG_value], dtype=torch.float32)
+            weight = row['weight'] # Weight is now mandatory
+            mut = Mutation(pdb_idx, pdb[0]['seq'][pdb_idx], row.mutation, ddG, wt_name, weight=weight) # Assuming 'mutation' column
             mutations.append(mut)
 
         return pdb, mutations
@@ -303,7 +393,7 @@ class ddgBenchDataset(torch.utils.data.Dataset):
                 if 'S669' in self.pdb_dir:
                     gaps = [g for g in pdb[0]['seq'] if g == '-']
                 else:
-                    gaps = [g for g in pdb[0]['seq'][:pdb_idx + 10] if g == '-']                
+                    gaps = [g for g in pdb[0]['seq'][:pdb_idx + 10] if g == '-']
 
                 if len(gaps) > 0:
                     pdb_idx += len(gaps)
@@ -331,6 +421,9 @@ class ComboDataset(torch.utils.data.Dataset):
         if "megascale" in cfg.datasets:
             mega_scale = MegaScaleDataset(cfg, split)
             datasets.append(mega_scale)
+        if "hides" in cfg.datasets:
+            hides = HIDESDataset(cfg, split)
+            datasets.append(hides)
         self.mut_dataset = ConcatDataset(datasets)
 
     def __len__(self):
@@ -338,5 +431,3 @@ class ComboDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         return self.mut_dataset[index]
-
-
