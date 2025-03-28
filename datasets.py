@@ -422,7 +422,7 @@ class ComboDataset(torch.utils.data.Dataset):
         if "megascale" in cfg.datasets:
             mega_scale = MegaScaleDataset(cfg, split)
             datasets.append(mega_scale)
-        if "hides" in cfg.datasets:
+        if "HIDES" in cfg.datasets:
             hides = HIDESDataset(cfg, split)
             datasets.append(hides)
         self.mut_dataset = ConcatDataset(datasets)
