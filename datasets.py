@@ -414,18 +414,20 @@ class ddgBenchDataset(torch.utils.data.Dataset):
 class ComboDataset(torch.utils.data.Dataset):
 
     def __init__(self, cfg, split):
-
         datasets = []
-        if "fireprot" in cfg.datasets:
-            fireprot = FireProtDataset(cfg, split)
-            datasets.append(fireprot)
-        if "megascale" in cfg.datasets:
-            mega_scale = MegaScaleDataset(cfg, split)
-            datasets.append(mega_scale)
-        if "HIDES" in cfg.datasets:
-            hides = HIDESDataset(cfg, split)
-            datasets.append(hides)
+        recognized_datasets = ["fireprot", "megascale", "hides"]
+        for dataset_name in cfg.datasets:
+            if dataset_name.lower() == "fireprot":
+                datasets.append(FireProtDataset(cfg, split))
+            elif dataset_name.lower() == "megascale":
+                datasets.append(MegaScaleDataset(cfg, split))
+            elif dataset_name.lower() == "hides":
+                datasets.append(HIDESDataset(cfg, split))
+            elif dataset_name.lower() not in recognized_datasets:
+                raise ValueError(f"Unrecognized dataset name '{dataset_name}' in config. "
+                                 f"Supported datasets are: {', '.join(recognized_datasets)}")
         self.mut_dataset = ConcatDataset(datasets)
+
 
     def __len__(self):
         return len(self.mut_dataset)
