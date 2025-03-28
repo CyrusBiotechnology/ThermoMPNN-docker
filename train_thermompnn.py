@@ -59,7 +59,7 @@ class TransferModelPL(pl.LightningModule):
         for mut, out in zip(mutations, pred):
             if mut.ddG is not None:
                 weight = 1.0
-                if hasattr(mut, "weight"):
+                if hasattr(mut, "weight") and weight is not None:
                     weight = mut.weight
                     if not printed:
                         print("modified weight of " + str(weight))
