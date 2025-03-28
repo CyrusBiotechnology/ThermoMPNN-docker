@@ -52,14 +52,21 @@ class TransferModelPL(pl.LightningModule):
         assert len(batch) == 1
         mut_pdb, mutations = batch[0]
         pred, _ = self(mut_pdb, mutations)
+        printed = False # diagnostic print weight once per batch
 
         ddg_mses = []
         for mut, out in zip(mutations, pred):
             if mut.ddG is not None:
-                weight = 1
+                weight = 1.0
                 if hasattr(mut, "weight"):
                     weight = mut.weight
-                    print ("modified weight of " + str(weight))
+                    if not printed:
+                        print("modified weight of " + str(weight))
+                        printed = True
+                else:
+                    if not printed:
+                        print("unweighted mutation")
+                        printed = True
 
                 mse = F.mse_loss(out["ddG"], mut.ddG)
                 weighted_mse = weight * mse
