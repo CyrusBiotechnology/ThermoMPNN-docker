@@ -332,7 +332,7 @@ class HIDESDataset(torch.utils.data.Dataset):
 
             ddG = None if ddG_value is None or isnan(ddG_value) else torch.tensor([ddG_value], dtype=torch.float32)
             weight = row['weight'] # Weight is now mandatory
-            print ("HIDESDataset loading - weight is " + str(weight))
+            #print ("HIDESDataset loading - weight is " + str(weight))
             mut = Mutation(pdb_idx, pdb[0]['seq'][pdb_idx], row.mutation, ddG, wt_name, weight=weight) # Assuming 'mutation' column
             mutations.append(mut)
 
