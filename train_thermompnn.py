@@ -66,7 +66,7 @@ class TransferModelPL(pl.LightningModule):
                         printed = True
                 else:
                     if not printed:
-                        print("unweighted mutation")
+                        print("unweighted mutation - using default weight of 1.0")
                         printed = True
 
                 mse = F.mse_loss(out["ddG"], mut.ddG)
