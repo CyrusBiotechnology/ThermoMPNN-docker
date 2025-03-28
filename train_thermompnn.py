@@ -14,7 +14,7 @@ from torchmetrics import MeanSquaredError, R2Score, SpearmanCorrCoef, PearsonCor
 from omegaconf import OmegaConf
 
 from transfer_model import TransferModel
-from datasets import FireProtDataset, MegaScaleDataset, ComboDataset
+from datasets import FireProtDataset, MegaScaleDataset, ComboDataset, HIDESDataset
 
 
 def get_metrics():
