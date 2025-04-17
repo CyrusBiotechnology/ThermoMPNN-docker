@@ -154,7 +154,7 @@ def train(cfg):
         if dataset == 'fireprot':
             train_dataset = FireProtDataset(cfg, "train")
             val_dataset = FireProtDataset(cfg, "val")
-        if dataset == 'HIDES':
+        elif dataset == 'HIDES':
             train_dataset = HIDESDataset(cfg, "train")
             val_dataset = HIDESDataset(cfg, "val")
         elif dataset == 'megascale_s669':
