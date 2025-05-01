@@ -317,6 +317,8 @@ class HIDESDataset(torch.utils.data.Dataset):
                 pdb_idx = row.pdb_position # Assuming 'pdb_position' column
                 assert pdb[0]['seq'][pdb_idx] == row.wild_type == row.pdb_sequence[row.pdb_position] # Assuming these columns
             except AssertionError:  # contingency for mis-alignments
+                print("Sequence warning {} {} {} {}" % (pdb_file, pdb[0]['seq'][pdb_idx], row.wild_type. row.pdb_sequence[row.pdb_position])
+ )
                 align, *rest = pairwise2.align.globalxx(seq, pdb[0]['seq'].replace("-", "X"))
                 pdb_idx = seq1_index_to_seq2_index(align, row.pdb_position)
                 if pdb_idx is None:
