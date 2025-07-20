@@ -2,6 +2,7 @@ import sys
 import wandb
 
 import torch
+torch.multiprocessing.set_sharing_strategy('file_system')
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -13,7 +14,7 @@ from torchmetrics import MeanSquaredError, R2Score, SpearmanCorrCoef, PearsonCor
 from omegaconf import OmegaConf
 
 from transfer_model import TransferModel
-from datasets import FireProtDataset, MegaScaleDataset, ComboDataset
+from datasets import FireProtDataset, MegaScaleDataset, ComboDataset, HIDESDataset
 
 
 def get_metrics():
@@ -52,15 +53,33 @@ class TransferModelPL(pl.LightningModule):
         assert len(batch) == 1
         mut_pdb, mutations = batch[0]
         pred, _ = self(mut_pdb, mutations)
+        printed = False # diagnostic print weight once per batch
 
         ddg_mses = []
         for mut, out in zip(mutations, pred):
             if mut.ddG is not None:
-                ddg_mses.append(F.mse_loss(out["ddG"], mut.ddG))
+                weight = 1.0
+                if hasattr(mut, "weight") and mut.weight is not None:
+                    weight = mut.weight
+                    if not printed:
+                        print("modified weight of " + str(weight))
+                        printed = True
+                else:
+                    if not printed:
+                        print("unweighted mutation - using default weight of 1.0")
+                        printed = True
+
+                mse = F.mse_loss(out["ddG"], mut.ddG)
+                weighted_mse = weight * mse
+                ddg_mses.append(weighted_mse)
+
                 for metric in self.metrics[f"{prefix}_metrics"]["ddG"].values():
                     metric.update(out["ddG"], mut.ddG)
 
         loss = 0.0 if len(ddg_mses) == 0 else torch.stack(ddg_mses).mean()
+        # Alternatively, if you want to normalize by the total weight:
+        # loss = 0.0 if total_weight == 0 else torch.stack(weighted_ddg_mses).sum() / total_weight
+
         on_step = False
         on_epoch = not on_step
 
@@ -135,6 +154,9 @@ def train(cfg):
         if dataset == 'fireprot':
             train_dataset = FireProtDataset(cfg, "train")
             val_dataset = FireProtDataset(cfg, "val")
+        elif dataset == 'HIDES':
+            train_dataset = HIDESDataset(cfg, "train")
+            val_dataset = HIDESDataset(cfg, "val")
         elif dataset == 'megascale_s669':
             train_dataset = MegaScaleDataset(cfg, "train_s669")
             val_dataset = MegaScaleDataset(cfg, "val")
